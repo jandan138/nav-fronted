@@ -18,7 +18,7 @@ API_ENDPOINTS = {
     "get_result": f"{BACKEND_URL}//predict"
 }
 
-# 模拟场景配置
+# 模拟Scene配置
 SCENE_CONFIGS = {
     "scene_1": {
         "description": "scene_1",
@@ -39,7 +39,7 @@ ACCESS_LOG = os.path.join(LOG_DIR, "access.log")
 SUBMISSION_LOG = os.path.join(LOG_DIR, "submissions.log")
 
 def log_access(user_ip: str = None, user_agent: str = None):
-    """记录用户访问日志"""
+    """记录用户Access日志"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = {
         "timestamp": timestamp,
@@ -52,7 +52,7 @@ def log_access(user_ip: str = None, user_agent: str = None):
         f.write(json.dumps(log_entry) + "\n")
 
 def log_submission(scene: str, prompt: str, model: str, user: str = "anonymous", res: str = "unknown"):
-    """记录用户提交日志"""
+    """记录用户Submission日志"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = {
         "timestamp": timestamp,
@@ -88,24 +88,24 @@ def read_logs(log_type: str = "all", max_entries: int = 50) -> list:
         except FileNotFoundError:
             pass
     
-    # 按时间戳排序，最新的在前
+    # 按Time戳排序，最新的在前
     logs.sort(key=lambda x: x["timestamp"], reverse=True)
     return logs[:max_entries]
 
 def format_logs_for_display(logs: list) -> str:
     """格式化日志用于显示"""
     if not logs:
-        return "暂无日志记录"
+        return "No log record"
     
-    markdown = "### 系统访问日志\n\n"
-    markdown += "| 时间 | 类型 | 用户/IP | 详细信息 |\n"
+    markdown = "### System Access Log\n\n"
+    markdown += "| Time | Type | User/IP | Details |\n"
     markdown += "|------|------|---------|----------|\n"
     
     for log in logs:
         timestamp = log.get("timestamp", "unknown")
-        log_type = "访问" if log.get("type") == "access" else "提交"
+        log_type = "Access" if log.get("type") == "access" else "Submission"
         
-        if log_type == "访问":
+        if log_type == "Access":
             user = log.get("user_ip", "unknown")
             details = f"User-Agent: {log.get('user_agent', 'unknown')}"
         else:
@@ -114,7 +114,7 @@ def format_logs_for_display(logs: list) -> str:
             if result != "success": 
                 if len(result) > 40:  # Adjust this threshold as needed
                     result = f"{result[:20]}...{result[-20:]}"
-            details = f"场景: {log.get('scene', 'unknown')}, 指令: {log.get('prompt', '')}, 模型: {log.get('model', 'unknown')}, result: {result}"
+            details = f"Scene: {log.get('scene', 'unknown')}, Prompt: {log.get('prompt', '')}, Model: {log.get('model', 'unknown')}, result: {result}"
         
         markdown += f"| {timestamp} | {log_type} | {user} | {details} |\n"
     
@@ -138,7 +138,7 @@ def stream_simulation_results(result_folder: str, task_id: str, fps: int = 30):
         生成的视频文件路径 (分段输出)
     """
     # 初始化变量
-    result_folder = os.path.join(result_folder, "image")
+    result_folder = os.path.join(result_folder, "images")
     os.makedirs(result_folder, exist_ok=True)
     frame_buffer: List[np.ndarray] = []
     frames_per_segment = fps * 2  # 每2秒60帧
@@ -363,18 +363,18 @@ def run_simulation(
     """运行仿真并更新历史记录"""
     model = "rdp"
 
-    # 获取当前时间
+    # 获取当前Time
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     scene_desc = SCENE_CONFIGS.get(scene, {}).get("description", scene)
 
-    # 记录用户提交
+    # 记录用户Submission
     user_ip = request.client.host if request else "unknown"
     
-    # 提交任务到后端
+    # Submission任务到后端
     submission_result = submit_to_backend(scene, prompt, start_position)
     
     if submission_result.get("status") != "pending":
-        raise gr.Error(f"提交失败: {submission_result.get('message', '未知错误')}")
+        raise gr.Error(f"Submission失败: {submission_result.get('message', '未知错误')}")
     
     task_id = submission_result["task_id"]
     gr.Info(f"Simulation started, task_id: {task_id}")
@@ -412,6 +412,7 @@ def run_simulation(
             "scene": scene,
             "model": model,
             "prompt": prompt,
+            "start_pos": start_position,
             "video_path": video_path
         }
         
@@ -484,10 +485,11 @@ def run_simulation(
         
     #     current_delay = max(current_delay * 0.8, max_delay)
     
-    # raise gr.Error(f"任务执行超时，超过最大等待时间({max_checks * max_delay:.0f}秒)")
+    # raise gr.Error(f"任务执行超时，超过最大等待Time({max_checks * max_delay:.0f}秒)")
     # return None, history
-
+###################################################################################################################
 def update_history_display(history: list) -> list:
+    print("更新历史记录显示")
     updates = []
     
     for i in range(10):
@@ -495,7 +497,7 @@ def update_history_display(history: list) -> list:
             entry = history[i]
             updates.extend([
                 gr.update(visible=True),
-                gr.update(visible=True, label=f"仿真记录 {i+1}  scene: {entry['scene']}, start: {entry['start_pos']}, prompt: {entry['prompt']}", open=False),
+                gr.update(visible=True, label=f"Simulation {i+1}  scene: {entry['scene']}, start: {entry['start_pos']}, prompt: {entry['prompt']}", open=False),
                 gr.update(value=entry['video_path'], visible=True),
                 gr.update(value=f"{entry['timestamp']}")
             ])
@@ -506,17 +508,38 @@ def update_history_display(history: list) -> list:
                 gr.update(value=None, visible=False),
                 gr.update(value="")
             ])
-    
+    print("更新完成！")
     return updates
 
 def update_scene_display(scene: str) -> tuple[str, Optional[str]]:
     config = SCENE_CONFIGS.get(scene, {})
-    desc = config.get("description", "无描述")
+    desc = config.get("description", "No Description")
     objects = "、".join(config.get("objects", []))
     image = config.get("preview_image", None)
     
-    markdown = f"**{desc}**  \n包含地点: {objects}"
+    markdown = f"**{desc}**  \nPlaces Included: {objects}"
     return markdown, image
+
+def update_log_display():
+    """更新日志显示"""
+    logs = read_logs()
+    return format_logs_for_display(logs)
+###################################################################################################################
+
+
+def cleanup_session(request: gr.Request):
+    session_id = request.session_hash
+    task_id = SESSION_TASKS.pop(session_id, None)
+    if task_id:
+        try:
+            requests.post(f"{BACKEND_URL}/predict/terminate/{task_id}", timeout=3)
+            print(f"已终止任务 {task_id}")
+        except Exception as e:
+            print(f"终止任务失败 {task_id}: {e}")
+
+
+
+###############################################################################
 
 custom_css = """
 #simulation-panel {
@@ -544,20 +567,20 @@ custom_css = """
 }
 """
 
-with gr.Blocks(title="机器人导航训练系统", css=custom_css) as demo:
+with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo:
     gr.Markdown("""
-    # 🧭 IsaacSim 机器人导航演示
-    ### 基于GRNavigation框架的仿真导航测试
+    # 🧭 IsaacSim Robot Navigation Demo
+    ### Simulation Test Based on GRNavigation Framework
     """)
     
     history_state = gr.State([])
 
     with gr.Row():
         with gr.Column(elem_id="simulation-panel"):
-            gr.Markdown("### 仿真任务配置")
+            gr.Markdown("### Simulation Task Configuration")
             
             scene_dropdown = gr.Dropdown(
-                label="选择场景配置",
+                label="Select Scene",
                 choices=list(SCENE_CONFIGS.keys()),
                 value="scene_1",
                 interactive=True
@@ -565,7 +588,7 @@ with gr.Blocks(title="机器人导航训练系统", css=custom_css) as demo:
             
             scene_description = gr.Markdown("")
             scene_preview = gr.Image(
-                label="场景预览",
+                label="Scene Preview",
                 elem_classes=["scene-preview"],
                 interactive=False
             )
@@ -577,69 +600,128 @@ with gr.Blocks(title="机器人导航训练系统", css=custom_css) as demo:
             )
             
             prompt_input = gr.Textbox(
-                label="导航指令",
+                label="Navigation Instruction",
                 value="Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug.",
-                placeholder="例如: 'Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug.'",
+                placeholder="e.g.: 'Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug.'",
                 lines=2,
                 max_lines=4
             )
             
             start_pos_input = gr.Textbox(
-                label="起始坐标 (x, y, z)",
+                label="Start Position (x, y, z)",
                 value="0.0, 0.0, 0.2",
-                placeholder="例如: 0.0, 0.0, 0.2"
+                placeholder="e.g.: 0.0, 0.0, 0.2"
             )
             
-            submit_btn = gr.Button("开始导航仿真", variant="primary")
-        
+            submit_btn = gr.Button("Start Navigation Simulation", variant="primary")
+
+       
         with gr.Column(elem_id="result-panel"):
-            gr.Markdown("### 最新仿真结果")
-            
+            gr.Markdown("### Latest Simulation Result")
+
+            # 视频输出
             video_output = gr.Video(
-                label="导航过程回放",
+                label="Live",
                 interactive=False,
                 format="mp4",
-                autoplay=True
+                autoplay=True,
+                streaming=True
             )
             
+            # 历史记录显示区域
             with gr.Column() as history_container:
-                gr.Markdown("### 历史记录")
+                gr.Markdown("### History")
+                gr.Markdown("#### History will be reset after refresh")
+                
+                # 预创建10个历史记录槽位
                 history_slots = []
                 for i in range(10):
                     with gr.Column(visible=False) as slot:
                         with gr.Accordion(visible=False, open=False) as accordion:
-                            video = gr.Video(interactive=False)
-                            detail_md = gr.Markdown()
-                    history_slots.append((slot, accordion, video, detail_md))
+                            video = gr.Video(interactive=False)  # 用于播放视频
+                            detail_md = gr.Markdown()  # 用于显示详细信息
+                    history_slots.append((slot, accordion, video, detail_md))  # 存储所有相关组件
+    
+    # 添加日志显示区域
+    with gr.Accordion("查看系统访问日志(DEV ONLY)", open=False):
+        logs_display = gr.Markdown()
+        refresh_logs_btn = gr.Button("刷新日志", variant="secondary")
+        
+        refresh_logs_btn.click(
+            update_log_display,
+            outputs=logs_display
+        )
+
+
+            # video_output = gr.Video(
+            #     label="Navigation Replay",
+            #     interactive=False,
+            #     format="mp4",
+            #     autoplay=True
+            # )
+            
+            # with gr.Column() as history_container:
+            #     gr.Markdown("### History")
+            #     history_slots = []
+            #     for i in range(10):
+            #         with gr.Column(visible=False) as slot:
+            #             with gr.Accordion(visible=False, open=False) as accordion:
+            #                 video = gr.Video(interactive=False)
+            #                 detail_md = gr.Markdown()
+            #         history_slots.append((slot, accordion, video, detail_md))
 
     gr.Examples(
         examples=[
             ["scene_1", "Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug.", "0.0, 0.0, 0.2"]
         ],
         inputs=[scene_dropdown, prompt_input, start_pos_input],
-        label="导航任务示例"
+        label="Navigation Task Example"
     )
     
     submit_btn.click(
         fn=run_simulation,
         inputs=[scene_dropdown, prompt_input, start_pos_input, history_state],
         outputs=[video_output, history_state],
+        queue=True,
         api_name="run_simulation"
     ).then(
         fn=update_history_display,
         inputs=history_state,
-        outputs=[comp for slot in history_slots for comp in slot]
+        outputs=[comp for slot in history_slots for comp in slot],
+        queue=True
+    ).then(
+        fn=update_log_display,
+        outputs=logs_display,
+    )
+
+
+    
+    # 初始化场景描述和日志
+    demo.load(
+        fn=lambda: update_scene_display("scene_1"),
+        outputs=[scene_description, scene_preview]
     ).then(
         fn=update_log_display,
         outputs=logs_display
     )
-    
+
+    # 记录访问
+    def record_access(request: gr.Request):
+        user_ip = request.client.host if request else "unknown"
+        user_agent = request.headers.get("user-agent", "unknown")
+        log_access(user_ip, user_agent)
+        return update_log_display()   
+
     demo.load(
-        fn=lambda: update_scene_display("scene_1"),
-        outputs=[scene_description, scene_preview]
+        fn=record_access,
+        inputs=None,
+        outputs=logs_display,
+        queue=False
     )
 
     demo.queue(default_concurrency_limit=8)
+
+    demo.unload(fn=cleanup_session)
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=55005, share=False, debug=True, allowed_paths=["/opt"])
