@@ -6,7 +6,7 @@ import json
 from typing import Optional
 from config import API_ENDPOINTS
 
-def submit_to_backend(scene: str, prompt: str, start_position: str, user: str = "Gradio-user") -> dict:
+def submit_to_backend(scene: str, prompt: str, user: str = "Gradio-user") -> dict:
     job_id = str(uuid.uuid4())
     data = {
         "model_type": "rdp",

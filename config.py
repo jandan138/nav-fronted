@@ -15,6 +15,28 @@ SCENE_CONFIGS = {
         "objects": ["bedroom", "kitchen", "living room", ""],
         "preview_image": "/opt/nav-fronted/assets/scene_1.png"
     },
+    "scene_2": {
+        "description": "scene_2",
+        "objects": ["office", "meeting room", "corridor"],
+        "preview_image": "/opt/nav-fronted/assets/scene_2.png"
+    },
+    "scene_3": {
+        "description": "scene_3",
+        "objects": ["garage", "workshop", "storage"],
+        "preview_image": "/opt/nav-fronted/assets/scene_3.png"
+    },
+    "scene_4": {
+        "description": "scene_4",
+        "objects": ["garden", "patio", "pool"],
+        "preview_image": "/opt/nav-fronted/assets/scene_4.png"
+    },
+    "scene_5": {
+        "description": "scene_5",
+        "objects": ["library", "hall", "lounge"],
+        "preview_image": "/opt/nav-fronted/assets/scene_5.png"
+    },
 }
 
-MODEL_CHOICES = []  # 仅占位，不再使用
+MODEL_CHOICES = ["RDP", "CMA"]
+MODE_CHOICES = ["vlnPE", "vlnCE"]
+

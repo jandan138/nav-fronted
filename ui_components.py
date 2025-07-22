@@ -9,9 +9,10 @@ def update_history_display(history: list) -> list:
     for i in range(10):
         if i < len(history):
             entry = history[i]
+            label_text = f"Simulation {i+1}  scene: {entry['scene']}, model: {entry.get('model','')}, mode: {entry.get('mode','')}, prompt: {entry['prompt']}"
             updates.extend([
                 gr.update(visible=True),
-                gr.update(visible=True, label=f"Simulation {i+1}  scene: {entry['scene']}, start: {entry['start_pos']}, prompt: {entry['prompt']}", open=False),
+                gr.update(visible=True, label=label_text, open=False),
                 gr.update(value=entry['video_path'], visible=True),
                 gr.update(value=f"{entry['timestamp']}")
             ])

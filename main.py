@@ -1,7 +1,7 @@
 # main.py
 # 主入口文件，负责启动 Gradio UI
 import gradio as gr
-from config import SCENE_CONFIGS
+from config import SCENE_CONFIGS, MODEL_CHOICES, MODE_CHOICES
 from backend_api import submit_to_backend, get_task_status, get_task_result
 from logging_utils import log_access, log_submission, is_request_allowed
 from simulation import stream_simulation_results, convert_to_h264
@@ -11,8 +11,7 @@ from datetime import datetime
 
 SESSION_TASKS = {}
 
-def run_simulation(scene, prompt, start_position, history, request: gr.Request):
-    model = "rdp"
+def run_simulation(scene, model, mode, prompt, history, request: gr.Request):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     scene_desc = SCENE_CONFIGS.get(scene, {}).get("description", scene)
     user_ip = request.client.host if request else "unknown"
@@ -20,7 +19,8 @@ def run_simulation(scene, prompt, start_position, history, request: gr.Request):
     if not is_request_allowed(user_ip):
         log_submission(scene, prompt, model, user_ip, "IP blocked temporarily")
         raise gr.Error("Too many requests from this IP. Please wait and try again one minute later.")
-    submission_result = submit_to_backend(scene, prompt, start_position)
+    # 传递model和mode给后端
+    submission_result = submit_to_backend(scene, prompt)  # 可根据后端接口调整
     if submission_result.get("status") != "pending":
         log_submission(scene, prompt, model, user_ip, "Submission failed")
         raise gr.Error(f"Submission failed: {submission_result.get('message', 'unknown issue')}")
@@ -53,8 +53,8 @@ def run_simulation(scene, prompt, start_position, history, request: gr.Request):
             "timestamp": timestamp,
             "scene": scene,
             "model": model,
+            "mode": mode,
             "prompt": prompt,
-            "start_pos": start_position,
             "video_path": video_path
         }
         updated_history = history + [new_entry]
@@ -135,6 +135,18 @@ with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo
                 value="scene_1",
                 interactive=True
             )
+            model_dropdown = gr.Dropdown(
+                label="Select Model",
+                choices=MODEL_CHOICES,
+                value=MODEL_CHOICES[0],
+                interactive=True
+            )
+            mode_dropdown = gr.Dropdown(
+                label="Select Mode",
+                choices=MODE_CHOICES,
+                value=MODE_CHOICES[0],
+                interactive=True
+            )
             scene_description = gr.Markdown("")
             scene_preview = gr.Image(
                 label="Scene Preview",
@@ -153,11 +165,7 @@ with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo
                 lines=2,
                 max_lines=4
             )
-            start_pos_input = gr.Textbox(
-                label="Start Position (x, y, z)",
-                value="0.0, 0.0, 0.2",
-                placeholder="e.g.: 0.0, 0.0, 0.2"
-            )
+            # ...existing code...
             submit_btn = gr.Button("Start Navigation Simulation", variant="primary")
         with gr.Column(elem_id="result-panel"):
             gr.Markdown("### Latest Simulation Result")
@@ -187,14 +195,14 @@ with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo
         )
     gr.Examples(
         examples=[
-            ["scene_1", "Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug.", "0.0, 0.0, 0.2"]
+            ["scene_1", "RDP", "vlnPE", "Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug."]
         ],
-        inputs=[scene_dropdown, prompt_input, start_pos_input],
+        inputs=[scene_dropdown, model_dropdown, mode_dropdown, prompt_input],
         label="Navigation Task Example"
     )
     submit_btn.click(
         fn=run_simulation,
-        inputs=[scene_dropdown, prompt_input, start_pos_input, history_state],
+        inputs=[scene_dropdown, model_dropdown, mode_dropdown, prompt_input, history_state],
         outputs=[video_output, history_state],
         queue=True,
         api_name="run_simulation"
