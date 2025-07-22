@@ -6,9 +6,10 @@ import uuid
 import time
 import subprocess
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime,timedelta
 import cv2
 import numpy as np
+from collections import defaultdict
 
 # 后端API配置（可配置化）
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -28,6 +29,21 @@ SCENE_CONFIGS = {
 }
 
 MODEL_CHOICES = []  # 仅占位，不再使用
+
+
+###############################################################################
+
+SESSION_TASKS = {}
+IP_REQUEST_RECORDS = defaultdict(list)
+IP_LIMIT = 5  # 每分钟最多请求次数
+
+def is_request_allowed(ip: str) -> bool:
+    now = datetime.now()
+    IP_REQUEST_RECORDS[ip] = [t for t in IP_REQUEST_RECORDS[ip] if now - t < timedelta(minutes=1)]
+    if len(IP_REQUEST_RECORDS[ip]) < IP_LIMIT:
+        IP_REQUEST_RECORDS[ip].append(now)
+        return True
+    return False
 
 ###############################################################################
 
@@ -125,7 +141,7 @@ def format_logs_for_display(logs: list) -> str:
 ###############################################################################
 
 
-def stream_simulation_results(result_folder: str, task_id: str, fps: int = 30):
+def stream_simulation_results(result_folder: str, task_id: str, fps: int = 6):
     """
     流式输出仿真结果，同时监控图片文件夹和后端任务状态
     
@@ -164,6 +180,8 @@ def stream_simulation_results(result_folder: str, task_id: str, fps: int = 30):
                 break
             elif status.get("status") == "failed":
                 raise gr.Error(f"任务执行失败: {status.get('result', '未知错误')}")
+            elif status.get("status") == "terminated":
+                break
             last_status_check = current_time
 
         # 处理新生成的图片
@@ -331,13 +349,15 @@ def get_task_status(task_id: str) -> dict:
     查询任务状态
     """
     try:
-        response = requests.get(
-            f"{API_ENDPOINTS['query_status']}/{task_id}",
-            timeout=5
-        )
-        return response.json()
+        response = requests.get(f"{API_ENDPOINTS['query_status']}/{task_id}", timeout=5)
+        try:
+            return response.json()  # 尝试解析为 JSON
+        except json.JSONDecodeError:
+            print("⚠️ 后端返回非 JSON 格式：", response.text)
+            return {"status": "error", "message": response.text}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
 
 def get_task_result(task_id: str) -> Optional[dict]:
     """
@@ -369,22 +389,59 @@ def run_simulation(
 
     # 记录用户Submission
     user_ip = request.client.host if request else "unknown"
+    session_id = request.session_hash
+
+    if not is_request_allowed(user_ip):
+        log_submission(scene, prompt, model, user_ip, "IP blocked temporarily")
+        raise gr.Error("Too many requests from this IP. Please wait and try again one minute later.")
     
-    # Submission任务到后端
-    submission_result = submit_to_backend(scene, prompt, start_position)
-    
+    # 提交任务到后端
+    submission_result = submit_to_backend(scene, prompt,start_position)
+    print("submission_result: ", submission_result)
+
     if submission_result.get("status") != "pending":
-        raise gr.Error(f"Submission失败: {submission_result.get('message', '未知错误')}")
+        log_submission(scene, prompt, model, user_ip, "Submission failed")
+        raise gr.Error(f"Submission failed: {submission_result.get('message', 'unknown issue')}")
     
-    task_id = submission_result["task_id"]
-    gr.Info(f"Simulation started, task_id: {task_id}")
-    time.sleep(5)
-    # 获取任务状态
-    status = get_task_status(task_id)
-    print("first status: ", status)
-    result_folder = status.get("result", "")
+    try:
+        task_id = submission_result["task_id"]
+        SESSION_TASKS[session_id] = task_id
+
+        gr.Info(f"Simulation started, task_id: {task_id}")
+        time.sleep(5)
+        # 获取任务状态
+        status = get_task_status(task_id)
+        print("first status: ", status)
+        result_folder = status.get("result", "")
+    except Exception as e:
+        log_submission(scene, prompt, model, user_ip, str(e))
+        raise gr.Error(f"error occurred when parsing submission result from backend: {str(e)}")
+
+
     if not os.path.exists(result_folder):
-        raise gr.Error(f"结果文件夹不存在: {result_folder}")
+        log_submission(scene, prompt, model, max_step, user_ip, "Result folder provided by backend doesn't exist")
+        raise gr.Error(f"Result folder provided by backend doesn't exist: <PATH>{result_folder}")
+
+    # if not is_request_allowed(user_ip):
+    #     raise gr.Error("请求过于频繁，请稍后再试。") 
+    
+    # # Submission任务到后端
+    # submission_result = submit_to_backend(scene, prompt, start_position)
+    
+    # if submission_result.get("status") != "pending":
+    #     raise gr.Error(f"Submission失败: {submission_result.get('message', '未知错误')}")
+    
+    # task_id = submission_result["task_id"]
+    # SESSION_TASKS[session_id] = task_id
+
+    # gr.Info(f"Simulation started, task_id: {task_id}")
+    # time.sleep(5)
+    # # 获取任务状态
+    # status = get_task_status(task_id)
+    # print("first status: ", status)
+    # result_folder = status.get("result", "")
+    # if not os.path.exists(result_folder):
+    #     raise gr.Error(f"结果文件夹不存在: {result_folder}")
     
     # 初始占位输出
     # yield None, history
@@ -432,13 +489,21 @@ def run_simulation(
         log_submission(scene, prompt, model, user_ip, status.get('result', 'backend error'))
         raise gr.Error(f"任务执行失败: {status.get('result', 'backend 未知错误')}")
         yield None, history
+
+    elif status.get("status") == "terminated":
+        log_submission(scene, prompt, model, user_ip, "terminated")
+        video_path = os.path.join(result_folder, "output.mp4")
+        if os.path.exists(video_path):
+            return f"⚠️ 任务 {task_id} 被终止，已生成部分结果", video_path, history
+        else:
+            return f"⚠️ 任务 {task_id} 被终止，未生成结果", None, history
+
     
     else:
         log_submission(scene, prompt, model, user_ip, "missing task's status from backend")
         raise gr.Error("missing task's status from backend")
         yield None, history
-
-
+        
     # # 轮询config
     # max_checks = 50  # 增加最大检查次数
     # initial_delay = 15.0  # 初始延迟
