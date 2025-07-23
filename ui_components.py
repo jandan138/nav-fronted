@@ -33,6 +33,11 @@ def update_scene_display(scene: str):
     markdown = f"**{desc}**  \nPlaces Included: {objects}"
     return markdown, image
 
+def get_scene_instruction(scene: str):
+    """根据场景获取默认指令"""
+    config = SCENE_CONFIGS.get(scene, {})
+    return config.get("default_instruction", "")
+
 def update_log_display():
     logs = read_logs()
     return format_logs_for_display(logs)

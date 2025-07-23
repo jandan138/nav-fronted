@@ -5,7 +5,7 @@ from config import SCENE_CONFIGS, MODEL_CHOICES, MODE_CHOICES
 from backend_api import submit_to_backend, get_task_status, get_task_result
 from logging_utils import log_access, log_submission, is_request_allowed
 from simulation import stream_simulation_results, convert_to_h264
-from ui_components import update_history_display, update_scene_display, update_log_display
+from ui_components import update_history_display, update_scene_display, update_log_display, get_scene_instruction
 import os
 from datetime import datetime
 
@@ -20,7 +20,8 @@ def run_simulation(scene, model, mode, prompt, history, request: gr.Request):
         log_submission(scene, prompt, model, user_ip, "IP blocked temporarily")
         raise gr.Error("Too many requests from this IP. Please wait and try again one minute later.")
     # 传递model和mode给后端
-    submission_result = submit_to_backend(scene, prompt)  # 可根据后端接口调整
+    #submission_result = submit_to_backend(scene, prompt, user=model)  # 可根据后端接口调整
+    submission_result = submit_to_backend(scene, prompt, mode, model, user_ip)
     if submission_result.get("status") != "pending":
         log_submission(scene, prompt, model, user_ip, "Submission failed")
         raise gr.Error(f"Submission failed: {submission_result.get('message', 'unknown issue')}")
@@ -132,7 +133,7 @@ with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo
             scene_dropdown = gr.Dropdown(
                 label="Select Scene",
                 choices=list(SCENE_CONFIGS.keys()),
-                value="scene_1",
+                value="demo1",
                 interactive=True
             )
             model_dropdown = gr.Dropdown(
@@ -153,17 +154,17 @@ with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo
                 elem_classes=["scene-preview"],
                 interactive=False
             )
-            scene_dropdown.change(
-                update_scene_display,
-                inputs=scene_dropdown,
-                outputs=[scene_description, scene_preview]
-            )
             prompt_input = gr.Textbox(
                 label="Navigation Instruction",
-                value="Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug.",
-                placeholder="e.g.: 'Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug.'",
+                value="Walk past the left side of the bed and stop in the doorway.",
+                placeholder="e.g.: 'Walk past the left side of the bed and stop in the doorway.'",
                 lines=2,
                 max_lines=4
+            )
+            scene_dropdown.change(
+                fn=lambda scene: [update_scene_display(scene)[0], update_scene_display(scene)[1], get_scene_instruction(scene)],
+                inputs=scene_dropdown,
+                outputs=[scene_description, scene_preview, prompt_input]
             )
             # ...existing code...
             submit_btn = gr.Button("Start Navigation Simulation", variant="primary")
@@ -195,10 +196,14 @@ with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo
         )
     gr.Examples(
         examples=[
-            ["scene_1", "RDP", "vlnPE", "Exit the bedroom and turn left. Walk straight passing the gray couch and stop near the rug."]
+            ["demo1", "rdp", "vlnPE", "Walk past the left side of the bed and stop in the doorway."],
+            ["demo2", "rdp", "vlnPE", "Walk through the bathroom, past the sink and toilet. Stop in front of the counter with the two suitcase."],
+            ["demo3", "rdp", "vlnPE", "Do a U-turn. Walk forward through the kitchen, heading to the black door. Walk out of the door and take a right onto the deck. Walk out on to the deck and stop."],
+            ["demo4", "rdp", "vlnPE", "Walk out of bathroom and stand on white bath mat."],
+            ["demo5", "rdp", "vlnPE", "Walk straight through the double wood doors, follow the red carpet straight to the next doorway and stop where the carpet splits off."]
         ],
         inputs=[scene_dropdown, model_dropdown, mode_dropdown, prompt_input],
-        label="Navigation Task Example"
+        label="Navigation Task Examples"
     )
     submit_btn.click(
         fn=run_simulation,
@@ -216,7 +221,7 @@ with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo
         outputs=logs_display,
     )
     demo.load(
-        fn=lambda: update_scene_display("scene_1"),
+        fn=lambda: update_scene_display("demo1"),
         outputs=[scene_description, scene_preview]
     ).then(
         fn=update_log_display,

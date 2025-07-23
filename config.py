@@ -10,33 +10,37 @@ API_ENDPOINTS = {
 }
 
 SCENE_CONFIGS = {
-    "scene_1": {
-        "description": "scene_1",
+    "demo1": {
+        "description": "Demo 1",
         "objects": ["bedroom", "kitchen", "living room", ""],
-        "preview_image": "/opt/nav-fronted/assets/scene_1.png"
+        "preview_image": "/opt/nav-fronted/assets/scene_1.png",
+        "default_instruction": "Walk past the left side of the bed and stop in the doorway."
     },
-    "scene_2": {
-        "description": "scene_2",
+    "demo2": {
+        "description": "Demo 2",
         "objects": ["office", "meeting room", "corridor"],
-        "preview_image": "/opt/nav-fronted/assets/scene_2.png"
+        "preview_image": "/opt/nav-fronted/assets/scene_2.png",
+        "default_instruction": "Walk through the bathroom, past the sink and toilet. Stop in front of the counter with the two suitcase."
     },
-    "scene_3": {
-        "description": "scene_3",
+    "demo3": {
+        "description": "Demo 3",
         "objects": ["garage", "workshop", "storage"],
-        "preview_image": "/opt/nav-fronted/assets/scene_3.png"
+        "preview_image": "/opt/nav-fronted/assets/scene_3.png",
+        "default_instruction": "Do a U-turn. Walk forward through the kitchen, heading to the black door. Walk out of the door and take a right onto the deck. Walk out on to the deck and stop."
     },
-    "scene_4": {
-        "description": "scene_4",
+    "demo4": {
+        "description": "Demo 4",
         "objects": ["garden", "patio", "pool"],
-        "preview_image": "/opt/nav-fronted/assets/scene_4.png"
+        "preview_image": "/opt/nav-fronted/assets/scene_4.png",
+        "default_instruction": "Walk out of bathroom and stand on white bath mat."
     },
-    "scene_5": {
-        "description": "scene_5",
+    "demo5": {
+        "description": "Demo 5",
         "objects": ["library", "hall", "lounge"],
-        "preview_image": "/opt/nav-fronted/assets/scene_5.png"
+        "preview_image": "/opt/nav-fronted/assets/scene_5.png",
+        "default_instruction": "Walk straight through the double wood doors, follow the red carpet straight to the next doorway and stop where the carpet splits off."
     },
 }
 
-MODEL_CHOICES = ["RDP", "CMA"]
+MODEL_CHOICES = ["rdp", "cma"]
 MODE_CHOICES = ["vlnPE", "vlnCE"]
-
