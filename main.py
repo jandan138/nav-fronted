@@ -123,8 +123,8 @@ custom_css = """
 
 with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo:
     gr.Markdown("""
-    # 🧭 IsaacSim Robot Navigation Demo
-    ### Simulation Test Based on GRNavigation Framework
+    # 🧭 InternNav Model Inference
+    ### Simulation Test Based on InternGRNavigation Framework
     """)
     history_state = gr.State([])
     with gr.Row():
