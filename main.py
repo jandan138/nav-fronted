@@ -121,7 +121,7 @@ custom_css = """
 }
 """
 
-with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo:
+with gr.Blocks(title="InternNav Model Inference", css=custom_css) as demo:
     gr.Markdown("""
     # 🧭 InternNav Model Inference
     ### Simulation Test Based on InternGRNavigation Framework
