@@ -121,11 +121,85 @@ custom_css = """
 }
 """
 
-with gr.Blocks(title="InternNav Model Inference", css=custom_css) as demo:
-    gr.Markdown("""
-    # 🧭 InternNav Model Inference
-    ### Simulation Test Based on InternGRNavigation Framework
-    """)
+custom_css += """
+.nav-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.nav-dropdown {
+    position: relative;
+    display: inline-block;
+}
+.dropdown-details {
+    position: relative;
+}
+.nav-dropbtn {
+    background-color: #3498DB;
+    color: white;
+    padding: 12px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: inline-block;
+    list-style: none;
+}
+.nav-dropbtn::-webkit-details-marker {
+    display: none;
+}
+.nav-dropdown-content {
+    position: absolute;
+    right: 0;
+    background-color: #f9f9f9;
+    min-width: 200px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 10000;
+    border-radius: 5px;
+    margin-top: 5px;
+}
+.nav-dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+}
+.nav-dropdown-content a:hover {background-color: #f1f1f1;}
+.dark .nav-dropdown-content {
+    background-color: #333;
+}
+.dark .nav-dropdown-content a {
+    color: white;
+}
+.dark .nav-dropdown-content a:hover {
+    background-color: #444;
+}
+"""
+
+with gr.Blocks(title="Robot Navigation Training System", css=custom_css) as demo:
+    with gr.Row():
+        with gr.Column(scale=1):
+            gr.Markdown("""
+            # 🧭 IsaacSim Robot Navigation Demo
+            ### Simulation Test Based on GRNavigation Framework
+            """)
+        with gr.Column(scale=1):
+            gr.HTML("""
+            <div class="nav-container">
+                <div class="nav-dropdown">
+                    <details class="dropdown-details">
+                        <summary class="nav-dropbtn">Related Work ▼</summary>
+                        <div class="nav-dropdown-content">
+                            <a href="http://123.57.187.96:55004/" target="_blank">OpenVLN Explorer</a>
+                            <a href="https://github.com/OpenRobotLab/GRUtopia" target="_blank">GitHub Repository</a>
+                            <a href="https://grutopia.github.io/index.html" target="_blank">GRUtopia Website</a>
+                        </div>
+                    </details>
+                </div>
+            </div>
+            """)
     history_state = gr.State([])
     with gr.Row():
         with gr.Column(elem_id="simulation-panel"):
